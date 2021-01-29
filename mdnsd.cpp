@@ -8,6 +8,8 @@
 
 
 #include <unistd.h>
+#include <sys/types.h>
+#include <ifaddrs.h>
 #include "tcpudp.h"
 
 #define MAX_NAME_LINE 250
@@ -24,6 +26,161 @@ void putWord(char *buf, unsigned short int v) {
 	char *p = (char *)&v;
 	buf[0] = p[1];
 	buf[1] = p[0];
+}
+
+void putDWord(char *buf, unsigned int v) {
+	char *p = (char *)&v;
+	buf[0] = p[3];
+	buf[1] = p[2];
+	buf[2] = p[1];
+	buf[3] = p[0];
+}
+
+int GetDefaultNetInterface(char *dev, int dlen=10) {
+    FILE *f;
+    char line[71];
+    char *p = NULL;
+    char *c;
+    
+    f = fopen("/proc/net/route", "r");
+    if ( ! f ) return -1;
+
+    int dn = 0;
+    while(fgets(line, 70, f))
+    {
+	p = strtok(line, " \t");
+	c = strtok(NULL, " \t");
+	
+	if ( p!=NULL && c!=NULL ) {
+	    if ( strcmp(c, "00000000") == 0) {
+		printf("Default interface is '%s'.\n", p);
+		break;
+	    }
+	}
+	dn += 1;
+    }
+    fclose(f);
+    if ( ! p ) {
+	// no default net interface
+	return -1;
+    }
+    strncpy(dev, p, dlen);
+    return dn;
+}
+
+
+unsigned int GetLocalIPv4Address ( )
+{
+    unsigned int host = 0x0100007f; // default local addr (127.0.0.1)
+
+    char defdev[24];
+    GetDefaultNetInterface(defdev);
+    if ( ! defdev[0] ) {
+	// no default net interface
+	return host;
+    }
+    //which family do we require , AF_INET or AF_INET6
+    int fm = AF_INET;
+    struct ifaddrs *ifaddr, *ifa;
+	int family;
+
+	if ( getifaddrs(&ifaddr) == -1 ) {
+	    perror("getifaddrs");
+	    return host;
+	}
+
+	//Walk through linked list, maintaining head pointer so we can free list later
+	for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
+	    if (ifa->ifa_addr == NULL)
+		continue;
+
+	    family = ifa->ifa_addr->sa_family;
+
+	    if ( strcmp( ifa->ifa_name, defdev) == 0 ) {
+		if (family == fm) {
+		    host = *(unsigned int*)(ifa->ifa_addr->sa_data+2);
+		    break;
+		}
+	    }
+	}
+	freeifaddrs(ifaddr);
+	// Success
+	return host;
+}
+
+int GetLocalAddress ( char *host )
+{
+    strcpy(host,"127.0.0.1"); // default local addr
+    
+    char defdev[24];
+    GetDefaultNetInterface(defdev);
+    if ( ! defdev[0] ) {
+	// no default net interface
+	return -1;
+    }
+    /*
+    FILE *f;
+    char line[71];
+    char *p = NULL;
+    char *c;
+    
+    f = fopen("/proc/net/route", "r");
+    if ( ! f ) return -1;
+
+    while(fgets(line, 70, f))
+    {
+	p = strtok(line, " \t");
+	c = strtok(NULL, " \t");
+	
+	if ( p!=NULL && c!=NULL ) {
+		if ( strcmp(c, "00000000") == 0) {
+			printf("Default interface is : %s \n", p);
+			break;
+		}
+	}
+    }
+    fclose(f);
+    */
+    if ( ! defdev[0] ) {
+	// no default net interface
+	return -1;
+    }
+    //which family do we require , AF_INET or AF_INET6
+    int fm = AF_INET;
+    struct ifaddrs *ifaddr, *ifa;
+	int family , s;
+	//char host[NI_MAXHOST];
+
+	if ( getifaddrs(&ifaddr) == -1 ) {
+	    perror("getifaddrs");
+	    return -1;
+	}
+
+	//Walk through linked list, maintaining head pointer so we can free list later
+	for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
+	    if (ifa->ifa_addr == NULL)
+		continue;
+
+	    family = ifa->ifa_addr->sa_family;
+
+	    if ( strcmp( ifa->ifa_name, defdev) == 0 ) {
+		if (family == fm) {
+		    s = getnameinfo( ifa->ifa_addr,
+			(family == AF_INET) ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6),
+			host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST);
+			
+		    if (s != 0) {
+			printf("getnameinfo() failed: %s\n", gai_strerror(s));
+			continue;
+		    }
+		    printf("address: %s\n", host);
+		    break;
+		}
+	    }
+	}
+	freeifaddrs(ifaddr);
+	// Success
+	return 0;
 }
 
 int main (int argc, char *argv[])
@@ -44,6 +201,9 @@ int main (int argc, char *argv[])
       exit(2);
   }
   int destPort = 5353;
+  
+  unsigned int myIpAddr = GetLocalIPv4Address();
+  printf("MyAddr: 0x%x\n", myIpAddr); 
 
   myServer = new ServerUDP();
   myServer->Bind(destPort);
@@ -69,14 +229,13 @@ int main (int argc, char *argv[])
   	  for( int i=0 ; i<4 ; i++ ) {
   	  	counters[i] = 0x100*buffer[4+2*i] + buffer[4+2*i+1];
   	  	// printf("  counter %d: %d\n", i, counters[i]);
-  	  }
-  	  // printf("id: %d, flags:%x\n", id, flags);   
+  	  }   
   	  if ( flags & 0x80 ) {		// Response packet
-  	  	// printf("Response packet received. Ignoring.\n");
+  	  	printf("Response packet received. Ignoring.\n");
   	  	continue;
   	  }
   	  if ( counters[0]==0 ) {	// No query
-  	  	// printf("No query in received packet. Ignoring.\n");
+  	  	printf("No query in received packet. Ignoring.\n");
   	  	continue;
   	  }
   	  int ini=12;			// Position Data Field
@@ -86,13 +245,6 @@ int main (int argc, char *argv[])
   	  while( buffer[ini] ) {
   	      memcpy(ntag,buffer+ini+1,buffer[ini]);
   	      ntag[(int)(buffer[ini])] = 0;
-  	      // printf("tag: '%s'\n", ntag);
-  	      /*
-  	      for(i=0;i<buffer[ini];i++) {
-  	          printf("%d: %d, %c\n", i, buffer[i+ini+1], buffer[i+ini+1]);
-  	      }
-  	      printf("--- ini=%d\n",ini);
-  	      */
   	      memcpy(nline+nline_len,ntag,buffer[ini]);
   	      nline_len += buffer[ini];
   	      nline[nline_len] = '.';
@@ -138,8 +290,8 @@ int main (int argc, char *argv[])
   	          putWord(aPacket+a_ptr+10, 0x1111);	//   timeout
   	          putWord(aPacket+a_ptr+12, 0x1111);	//
   	          putWord(aPacket+a_ptr+14, 0x04);	// Addr len
-  	          putWord(aPacket+a_ptr+16, 0x9b21);
-  	          putWord(aPacket+a_ptr+18, 0x1144);
+  	          putDWord(aPacket+a_ptr+16, myIpAddr);	// IP addr.    Must be set !!
+  	          
   	  
   	  	  int pack_len =         12+query_len+20;
   	  	  /*
