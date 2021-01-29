@@ -2,11 +2,13 @@
 -include .config
 
 TARGET=mdnsd
+TABLE=${TARGET}.tab
+
 CFLAGS=-Wall -Wno-unused-local-typedefs -fPIC
 
 default: ${TARGET}
 
-all: default
+all: default ${TABLE}
 
 ${TARGET}: ${TARGET}.o
 	g++ -o $@ $^ 
@@ -14,8 +16,11 @@ ${TARGET}: ${TARGET}.o
 ${TARGET}.o: ${TARGET}.cpp tcpudp.h config.h
 	g++ -c ${CFLAGS} -g $<
 
+${TABLE}: 
+	echo `hostname -s`.local >$@
+
 clean:
-	rm -f ${TARGET} ${TARGET}.o
+	rm -f ${TARGET} ${TARGET}.o ${TABLE}
 
 push:
 	git add .

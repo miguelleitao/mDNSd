@@ -15,7 +15,7 @@
 #define MAX_NAME_LINE 250
 #define MAX_NAME_TAG 100
 #define MAX_NAMES_N  8
-#define NAMES_TAB_FILE "names.tab"
+#define NAMES_TAB_FILE "mdnsd.tab"
 
 char *names_table[MAX_NAMES_N];
 int nNames = 0;
@@ -281,7 +281,6 @@ int main (int argc, char *argv[])
   	          putWord(aPacket+a_ptr+0, 0x01);	// Type A
   	          putWord(aPacket+a_ptr+2, 0x01);	// Class IN
   	          
-  	          
   	          putWord(aPacket+a_ptr+4, 0xc00c);	// Name is a pointer
   	          
   	          putWord(aPacket+a_ptr+6, 0x01);	// Type A
@@ -292,7 +291,6 @@ int main (int argc, char *argv[])
   	          putWord(aPacket+a_ptr+14, 0x04);	// Addr len
   	          putDWord(aPacket+a_ptr+16, myIpAddr);	// IP addr.    Must be set !!
   	          
-  	  
   	  	  int pack_len =         12+query_len+20;
   	  	  /*
   	  	  for(int i=0;i<pack_len;i++) {
