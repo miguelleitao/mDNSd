@@ -21,3 +21,17 @@ push:
 	git add .
 	git commit -m "auto update"
 	git push
+
+install: ${TARGET}
+	install -d $(DESTDIR)$(PREFIX)/bin/
+	install -m 755 ${TARGET} $(DESTDIR)$(PREFIX)/bin/
+	install -d $(DESTDIR)$(PREFIX)/lib/systemd/system/
+	install -m 755 ${SERVICE} $(DESTDIR)$(PREFIX)/lib/systemd/system/ 
+	@echo "\nPara configurar arranque: systemctl enable mdnsd"
+	@echo "Para controlar: systemctl start/stop mdnsd\n"
+
+uninstall:
+	rm -f (DESTDIR)$(PREFIX)/bin/${TARGET}
+	rm -f $(DESTDIR)$(PREFIX)/lib/systemd/system/${SERVICE}
+	
+

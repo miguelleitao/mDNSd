@@ -1,0 +1,19 @@
+# shutter.service
+# This file should be installed into /usr/local/lib/systemd/system/
+
+[Unit]
+Description=Shutter Daemon
+After=network.target
+StartLimitIntervalSec=30
+
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+StartLimitBurst=10
+StartLimitAction=reboot
+ExecStart=/usr/local/bin/shutterd
+
+[Install]
+WantedBy=multi-user.target
