@@ -299,6 +299,10 @@ class ServerUDP : public ServerConnector
                 printf("%s: unable to create socket\n", "ServerUDP");
                 return 1;
   	}
+  	
+  	int one = 1;
+        setsockopt(Soc, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
+  	
         /* Bind the server's address to the socket. */
   	if (bind(Soc, (const sockaddr*)&myaddr_in, sizeof(struct sockaddr_in)) == -1) {
                 perror("ServerUDP");
