@@ -224,9 +224,17 @@ int main (int argc, char *argv[])
   printf("MyAddr: 0x%x\n", myIpAddr); 
 
   myServer = new ServerUDP();
+ /* 
+  struct ip_mreq mreq;
+  mreq.imr_multiaddr.s_addr = inet_addr("224.0.0.251");
+  mreq.imr_interface.s_addr = inet_addr("192.168.1.82");
+  setsockopt(myServer->Soc, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) ;
+*/
+
 
   /* Initialize the group sockaddr structure with a */
   /* group address of 224.0.0.251 and port 5353. */
+  /*
   struct sockaddr_in groupSock;
   memset((char *) &groupSock, 0, sizeof(groupSock));
   groupSock.sin_family = AF_INET;
@@ -234,6 +242,7 @@ int main (int argc, char *argv[])
   groupSock.sin_port = htons(destPort);
 
   struct in_addr localInterface;
+  */
 
   /* Set local interface for outbound multicast datagrams. */
   /* The IP address specified must be associated with a local, */
@@ -249,6 +258,11 @@ int main (int argc, char *argv[])
     printf("Setting the local interface...OK\n");
 */
   myServer->Bind(destPort);
+  
+  struct ip_mreq mreq;
+  mreq.imr_multiaddr.s_addr = inet_addr("224.0.0.251");
+  mreq.imr_interface.s_addr = inet_addr("192.168.1.82");
+  setsockopt(myServer->Soc, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) ;
   
   char buffer[280];
   int res;
