@@ -196,9 +196,16 @@ int main (int argc, char *argv[])
 
   if ( argc>1 ) {
       if ( argv[1][0]=='-' ) {
-          switch( argv[0][1] ) {
+          switch( argv[1][1] ) {
               case 'v':
                   verbose=1;
+                  argc--;
+                  argv++;
+                  if ( argc>1 && argv[1][0]>='0' && argv[1][0]<='9' ) {
+                      verbose = atoi(argv[1]);
+                      argc--;
+                      argv++;
+                  } 
                   break;
           }
       }
@@ -270,7 +277,7 @@ int main (int argc, char *argv[])
       res = myServer->Receive((unsigned char *)buffer,250);
       if ( res>0 && res<MAX_NAME_LINE+2 ) {
   	  buffer[res] = 0;
-  	  if ( verbose ) {
+  	  if ( verbose>39 ) {
   	      printf("Received: %d bytes\n", res);
   	      unsigned int i;	      
   	      for( i=0; i<(unsigned)res ; i++ ) {
@@ -282,7 +289,7 @@ int main (int argc, char *argv[])
   	  //unsigned short int id    = *(unsigned short int *)(buffer+0);
   	  unsigned short int id = 256*(unsigned char)(buffer[0]);
   	  id += (unsigned char)(buffer[1]);
-  	  printf("  got id:%u\n", id);
+  	  if ( verbose>11 ) printf("  got id:%u\n", id);
   	  unsigned short int flags = *(unsigned short int *)(buffer+2);
   	  unsigned short int counters[4];
   	  for( int i=0 ; i<4 ; i++ ) {
@@ -290,11 +297,11 @@ int main (int argc, char *argv[])
   	  	// printf("  counter %d: %d\n", i, counters[i]);
   	  }   
   	  if ( flags & 0x80 ) {		// Response packet
-  	  	printf("Response packet received. Ignoring.\n");
+  	  	if (verbose>0) printf("Response packet received. Ignoring.\n");
   	  	continue;
   	  }
   	  if ( counters[0]==0 ) {	// No query
-  	  	printf("No query in received packet. Ignoring.\n");
+  	  	if (verbose>0) printf("No query in received packet. Ignoring.\n");
   	  	continue;
   	  }
   	  int ini=12;			// Position Data Field
@@ -312,13 +319,13 @@ int main (int argc, char *argv[])
   	  }
   	  nline_len--;
   	  nline[nline_len] = 0;
-  	  printf("LINE: '%s' (%d)\n", nline, nline_len);
+  	  if ( verbose>1 ) printf("LINE: '%s' (%d)\n", nline, nline_len);
   	  
   	  // Got query.
   	  // Now search name in table
   	  for( int i=0 ; i<nNames ; i++ ) {
   	      if ( ! strncmp(nline,names_table[i],nline_len) ) {
-  	          printf("Found match: %d, '%s'\n", i, names_table[i]);
+  	          if ( verbose>9 ) printf("Found match: %d, '%s'\n", i, names_table[i]);
   	          char aPacket[MAX_NAME_LINE+12];
   	          flags = 0x8400;
   	          putWord(aPacket + 0, id);
@@ -329,7 +336,7 @@ int main (int argc, char *argv[])
   	          putWord(aPacket +10, 0);			// No Additional records
   	          
   	          memcpy( aPacket+12, buffer+12, nline_len+6);
-  	          if (verbose) printf("acrescentando %d a posicao 12.\n", nline_len+6);
+  	          if (verbose>235) printf("acrescentando %d a posicao 12.\n", nline_len+6);
   	          
   	          int a_ptr = 12+nline_len+6;
   	          // End of query section
@@ -344,7 +351,7 @@ int main (int argc, char *argv[])
   	          
   	  	  //int pack_len =         12+query_len+20-16;
   	  	  int pack_len = a_ptr + 10;
-  	  	  if ( verbose ) {
+  	  	  if ( verbose>105 ) {
 	  	  	  printf("Output packet\n");
 	  	  	  int i;
 	  	  	  for(i=0;i<pack_len;i++) {
