@@ -10,6 +10,12 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <ifaddrs.h>
+
+      #include <sys/socket.h>
+       #include <netinet/in.h>
+       #include <arpa/inet.h>
+
+
 #include "tcpudp.h"
 
 #define MAX_NAME_LINE 250
@@ -17,6 +23,7 @@
 #define MAX_NAMES_N  8
 #define NAMES_TAB_FILE "mdnsd.tab"
 
+int verbose = 0;
 char *names_table[MAX_NAMES_N];
 int nNames = 0;
 
@@ -29,11 +36,12 @@ void putWord(char *buf, unsigned short int v) {
 }
 
 void putDWord(char *buf, unsigned int v) {
+	// Used for IPv4 addresses.
 	char *p = (char *)&v;
-	buf[0] = p[3];
-	buf[1] = p[2];
-	buf[2] = p[1];
-	buf[3] = p[0];
+	buf[0] = p[0];
+	buf[1] = p[1];
+	buf[2] = p[2];
+	buf[3] = p[3];
 }
 
 int GetDefaultNetInterface(char *dev, int dlen=10) {
@@ -184,7 +192,17 @@ int GetLocalAddress ( char *host )
 }
 
 int main (int argc, char *argv[])
-{
+{ 
+
+  if ( argc>1 ) {
+      if ( argv[1][0]=='-' ) {
+          switch( argv[0][1] ) {
+              case 'v':
+                  verbose=1;
+                  break;
+          }
+      }
+  }
   FILE *ftab = fopen(NAMES_TAB_FILE, "r");
   if ( ! ftab ) {
       fprintf(stderr, "Error. Names table file '%s' not found.\n", NAMES_TAB_FILE);
@@ -206,6 +224,30 @@ int main (int argc, char *argv[])
   printf("MyAddr: 0x%x\n", myIpAddr); 
 
   myServer = new ServerUDP();
+
+  /* Initialize the group sockaddr structure with a */
+  /* group address of 224.0.0.251 and port 5353. */
+  struct sockaddr_in groupSock;
+  memset((char *) &groupSock, 0, sizeof(groupSock));
+  groupSock.sin_family = AF_INET;
+  groupSock.sin_addr.s_addr = inet_addr("224.0.0.251");
+  groupSock.sin_port = htons(destPort);
+
+  struct in_addr localInterface;
+
+  /* Set local interface for outbound multicast datagrams. */
+  /* The IP address specified must be associated with a local, */
+  /* multicast capable interface. */
+  
+  /*
+  localInterface.s_addr = inet_addr("192.168.1.82");
+  if(setsockopt(myServer->Soc, IPPROTO_IP, IP_MULTICAST_IF, (char *)&localInterface, sizeof(localInterface)) < 0) {
+    perror("Setting local interface error");
+    exit(1);
+  }
+  else
+    printf("Setting the local interface...OK\n");
+*/
   myServer->Bind(destPort);
   
   char buffer[280];
@@ -214,17 +256,20 @@ int main (int argc, char *argv[])
       res = myServer->Receive((unsigned char *)buffer,250);
       if ( res>0 && res<MAX_NAME_LINE+2 ) {
   	  buffer[res] = 0;
-  	  /*
-  	  printf("Received: %d bytes\n", res);
-  	    	      
-  	      for(int i=0;i<res;i++) {
-  	          printf("  %d: %d, %c\n", i, buffer[i], buffer[i]);
+  	  if ( verbose ) {
+  	      printf("Received: %d bytes\n", res);
+  	      unsigned int i;	      
+  	      for( i=0; i<(unsigned)res ; i++ ) {
+  	          printf("  %u: %u, %c\n", i, (unsigned char)buffer[i], buffer[i] );
   	      }
   	      printf("--- End packect dump\n");
-  	  */
+  	  }
   	  // Header is 12 bytes long, 6 * 16bits words: id + flags + 4*counters
-  	  unsigned short int id = *(unsigned short int *)buffer;
-  	  unsigned short int flags = *(unsigned short int *)buffer;
+  	  //unsigned short int id    = *(unsigned short int *)(buffer+0);
+  	  unsigned short int id = 256*(unsigned char)(buffer[0]);
+  	  id += (unsigned char)(buffer[1]);
+  	  printf("  got id:%u\n", id);
+  	  unsigned short int flags = *(unsigned short int *)(buffer+2);
   	  unsigned short int counters[4];
   	  for( int i=0 ; i<4 ; i++ ) {
   	  	counters[i] = 0x100*buffer[4+2*i] + buffer[4+2*i+1];
@@ -253,58 +298,52 @@ int main (int argc, char *argv[])
   	  }
   	  nline_len--;
   	  nline[nline_len] = 0;
-  	  // printf("LINE: '%s'\n", nline);
+  	  printf("LINE: '%s' (%d)\n", nline, nline_len);
   	  
   	  // Got query.
   	  // Now search name in table
   	  for( int i=0 ; i<nNames ; i++ ) {
   	      if ( ! strncmp(nline,names_table[i],nline_len) ) {
-  	          // printf("Found match: %d, '%s'\n", i, names_table[i]);
+  	          printf("Found match: %d, '%s'\n", i, names_table[i]);
   	          char aPacket[MAX_NAME_LINE+12];
   	          flags = 0x8400;
-  	          int query_len = res-16;
   	          putWord(aPacket + 0, id);
   	          putWord(aPacket + 2, flags);
   	          putWord(aPacket + 4, 1);			// 1 record in Query section
   	          putWord(aPacket + 6, 1);			// 1 record in Answer section
-  	          putWord(aPacket + 8, 0);
-  	          putWord(aPacket +10, 0);
-  	          memcpy( aPacket +12, buffer+12, query_len);
-  	          int a_ptr = 12+query_len;
+  	          putWord(aPacket + 8, 0);			// No Auth records
+  	          putWord(aPacket +10, 0);			// No Additional records
+  	          
+  	          memcpy( aPacket+12, buffer+12, nline_len+6);
+  	          if (verbose) printf("acrescentando %d a posicao 12.\n", nline_len+6);
+  	          
+  	          int a_ptr = 12+nline_len+6;
   	          // End of query section
   	          
-  	          //memcpy( aPacket+a_ptr, buffer+12, query_len);
-  	          //a_ptr += query_len;
+  	          memcpy( aPacket+a_ptr, buffer+12, nline_len+6);
+
+  	          a_ptr += nline_len+6;
+  	          putWord(aPacket+a_ptr+0, 0x0000);	//   TTL (Hi Word)
+  	          putWord(aPacket+a_ptr+2, 0xa000);	//   TTL (Low Word)
+  	          putWord(aPacket+a_ptr+4, 0x04);	// Addr len
+  	          putDWord(aPacket+a_ptr+6, myIpAddr);	// IP addr.    Must be set !!
   	          
-  	          //putWord(aPacket+a_ptr+0, 0x0c);	// Name is a pointer
-  	          //putWord(aPacket+a_ptr+2, 0x00C);
-  	          putWord(aPacket+a_ptr+0, 0x01);	// Type A
-  	          putWord(aPacket+a_ptr+2, 0x01);	// Class IN
-  	          
-  	          putWord(aPacket+a_ptr+4, 0xc00c);	// Name is a pointer
-  	          
-  	          putWord(aPacket+a_ptr+6, 0x01);	// Type A
-  	          putWord(aPacket+a_ptr+8, 0x01);	// Class IN
-  	          
-  	          putWord(aPacket+a_ptr+10, 0x1111);	//   timeout
-  	          putWord(aPacket+a_ptr+12, 0x1111);	//
-  	          putWord(aPacket+a_ptr+14, 0x04);	// Addr len
-  	          putDWord(aPacket+a_ptr+16, myIpAddr);	// IP addr.    Must be set !!
-  	          
-  	  	  int pack_len =         12+query_len+20;
-  	  	  /*
-  	  	  for(int i=0;i<pack_len;i++) {
-  	              printf("%d: %d, %c\n", i, aPacket[i], aPacket[i]);
+  	  	  //int pack_len =         12+query_len+20-16;
+  	  	  int pack_len = a_ptr + 10;
+  	  	  if ( verbose ) {
+	  	  	  printf("Output packet\n");
+	  	  	  int i;
+	  	  	  for(i=0;i<pack_len;i++) {
+	  	              printf("%d: %u, %c\n", i, (unsigned char)aPacket[i], aPacket[i]);
+	  	          }
   	          }
-  	          */
-       
   	          myServer->Send(aPacket,pack_len);
   	      }
   	  }
   	  // Not found. Ignore request.
       }
       else {
-	  fprintf(stderr,"Error. Invalid query packet\n");
+	  fprintf(stderr,"Error. Invalid query packet. Len:%d\n", res);
       }
   } while (res>1);
   /*-- Return 0 if exit is successful --*/

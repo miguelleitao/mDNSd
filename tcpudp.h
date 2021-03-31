@@ -30,7 +30,7 @@ class SocketConnector
     #define BUFFERSIZE  1024  		        /* Initial size of receiving buffer.
     						 * Max size of packets to be received.
     						 */
-    protected:
+    public:
         int  Soc;                         	/* Socket descriptor */
         struct sockaddr_in myaddr_in;  	/* For local socket address */
         int BufferSize = BUFFERSIZE;		/* Actual max size of packets to be received */
