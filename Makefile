@@ -3,6 +3,7 @@
 
 TARGET=mdnsd
 TABLE=${TARGET}.tab
+SERVICE=${TARGET}.service
 
 CFLAGS=-Wall -Wno-unused-local-typedefs -fPIC
 
