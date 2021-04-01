@@ -212,8 +212,12 @@ int main (int argc, char *argv[])
   }
   FILE *ftab = fopen(NAMES_TAB_FILE, "r");
   if ( ! ftab ) {
-      fprintf(stderr, "Error. Names table file '%s' not found.\n", NAMES_TAB_FILE);
-      exit(1);
+      ftab = fopen("/usr/local/etc/" NAMES_TAB_FILE, "r");
+      if ( ! ftab ) {
+          fprintf(stderr, "Error. Names table file '%s' not found.\n", NAMES_TAB_FILE);
+          sleep(2);
+          exit(1);
+      }
   }
   char nline[MAX_NAME_LINE+1];
   while( nNames<MAX_NAMES_N && fgets(nline, MAX_NAME_LINE, ftab) ) {
