@@ -245,7 +245,8 @@ int main (int argc, char *argv[])
   
   struct ip_mreq mreq;
   mreq.imr_multiaddr.s_addr = inet_addr("224.0.0.251");
-  mreq.imr_interface.s_addr = inet_addr("192.168.1.82");
+  //mreq.imr_interface.s_addr = inet_addr("192.168.1.82");
+  mreq.imr_interface.s_addr = myIpAddr;
   setsockopt(myServer->Soc, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) ;
   
   char buffer[280];
