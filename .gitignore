@@ -1,6 +1,7 @@
 mdnsd
 mdnsd.tab
 mdnsc
+mcast_rec
 
 # Prerequisites
 *.d
