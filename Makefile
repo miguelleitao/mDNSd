@@ -8,6 +8,10 @@ DEV_TARGETS=mdnsc mcast_rec
 
 CFLAGS=-Wall -Wno-unused-local-typedefs -fPIC
 
+ifeq ($(PREFIX),)
+    PREFIX := /usr/local
+endif
+
 default: ${TARGET}
 
 all: default ${TABLE} ${DEV_TARGETS}
