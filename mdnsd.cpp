@@ -10,11 +10,9 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <ifaddrs.h>
-
-      #include <sys/socket.h>
-       #include <netinet/in.h>
-       #include <arpa/inet.h>
-
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 #include "tcpudp.h"
 
@@ -97,7 +95,7 @@ unsigned int GetLocalIPv4Address ( )
 	    return host;
 	}
 
-	//Walk through linked list, maintaining head pointer so we can free list later
+	// Walk through linked list, maintaining head pointer so we can free list later
 	for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
 	    if (ifa->ifa_addr == NULL)
 		continue;
@@ -193,12 +191,11 @@ int GetLocalAddress ( char *host )
 
 int main (int argc, char *argv[])
 { 
-
-  if ( argc>1 ) {
+    if ( argc>1 ) {
       if ( argv[1][0]=='-' ) {
           switch( argv[1][1] ) {
               case 'v':
-                  verbose=1;
+                  verbose = 1;
                   argc--;
                   argv++;
                   if ( argc>1 && argv[1][0]>='0' && argv[1][0]<='9' ) {
@@ -209,49 +206,58 @@ int main (int argc, char *argv[])
                   break;
           }
       }
-  }
-  FILE *ftab = fopen(NAMES_TAB_FILE, "r");
-  if ( ! ftab ) {
-      ftab = fopen("/usr/local/etc/" NAMES_TAB_FILE, "r");
-      if ( ! ftab ) {
-          fprintf(stderr, "Error. Names table file '%s' not found.\n", NAMES_TAB_FILE);
-          sleep(2);
-          exit(1);
-      }
-  }
-  char nline[MAX_NAME_LINE+1];
-  while( nNames<MAX_NAMES_N && fgets(nline, MAX_NAME_LINE, ftab) ) {
+    }
+    FILE *ftab = fopen(NAMES_TAB_FILE, "r");
+    if ( ftab ) {
+        if ( verbose ) 
+            printf("Using name table from file " NAMES_TAB_FILE ".\n");
+    }
+    else {
+        ftab = fopen("/usr/local/etc/" NAMES_TAB_FILE, "r");
+        if ( ! ftab ) {
+            fprintf(stderr, "Error. Names table file '%s' not found.\n", NAMES_TAB_FILE);
+            sleep(2);
+            exit(1);
+        }
+	if ( verbose ) 
+            printf("Using name table from file /usr/local/etc/" NAMES_TAB_FILE ".\n"); 
+    }
+    char nline[MAX_NAME_LINE+1];
+    while( nNames<MAX_NAMES_N && fgets(nline, MAX_NAME_LINE, ftab) ) {
+        if ( ! *nline ) continue;
   	names_table[nNames] = strdup(nline);
+	if ( verbose>1 )
+	    printf("  Name[%d]: %s.\n", nNames, nline);
   	nNames++;
-  }
-  fclose(ftab);
-  if ( ! nNames ) {
+    }
+    fclose(ftab);
+    if ( ! nNames ) {
       fprintf(stderr, "Error. No names found.\n");
       exit(2);
-  }
-  int destPort = 5353;
+    }
+    int destPort = 5353;
   
-  unsigned int myIpAddr = GetLocalIPv4Address();
-  printf("MyAddr: 0x%x\n", myIpAddr); 
+    unsigned int myIpAddr = GetLocalIPv4Address();
+    if ( verbose ) printf("Binding to local address: 0x%x, UDP port: %d\n", myIpAddr, destPort); 
 
-  myServer = new ServerUDP();
+    myServer = new ServerUDP();
 
 /*
   int one = 1;
   setsockopt(myServer->Soc, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
 */
 
-  myServer->Bind(destPort);
+    myServer->Bind(destPort);
   
-  struct ip_mreq mreq;
-  mreq.imr_multiaddr.s_addr = inet_addr("224.0.0.251");
-  //mreq.imr_interface.s_addr = inet_addr("192.168.1.82");
-  mreq.imr_interface.s_addr = myIpAddr;
-  setsockopt(myServer->Soc, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) ;
+    struct ip_mreq mreq;
+    mreq.imr_multiaddr.s_addr = inet_addr("224.0.0.251");
+    //mreq.imr_interface.s_addr = inet_addr("192.168.1.82");
+    mreq.imr_interface.s_addr = myIpAddr;
+    setsockopt(myServer->Soc, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) ;
   
-  char buffer[280];
-  int res;
-  do {
+    char buffer[280];
+    int res;
+    do {
       res = myServer->Receive((unsigned char *)buffer,250);
       if ( res>0 && res<MAX_NAME_LINE+2 ) {
   	  buffer[res] = 0;
@@ -344,10 +350,11 @@ int main (int argc, char *argv[])
       else {
 	  fprintf(stderr,"Error. Invalid query packet. Len:%d\n", res);
       }
-  } while (res>1);
-  /*-- Return 0 if exit is successful --*/
-  myServer->Close();
-  myServer->EndServer();
-  delete myServer;
-  return 0;
+    } while (res>1);
+    /*-- Return 0 if exit is successful --*/
+    myServer->Close();
+    myServer->EndServer();
+    delete myServer;
+    return 0;
 }
+
