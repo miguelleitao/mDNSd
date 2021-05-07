@@ -236,8 +236,18 @@ int main (int argc, char *argv[])
       exit(2);
     }
     int destPort = 5353;
-  
-    unsigned int myIpAddr = GetLocalIPv4Address();
+ 
+    sleep(40); // Wait until all net interfaces are configured
+ 
+    unsigned int myIpAddr;
+    int nTry = 1;
+    do {
+        myIpAddr = GetLocalIPv4Address();
+	if ( myIpAddr != 0x0100007f ) break;
+        sleep(nTry);
+        if ( nTry < 6*60 ) nTry += 1;
+    } while( myIpAddr == 0x0100007f );
+
     if ( verbose ) printf("Binding to local address: 0x%x, UDP port: %d\n", myIpAddr, destPort); 
 
     myServer = new ServerUDP();
