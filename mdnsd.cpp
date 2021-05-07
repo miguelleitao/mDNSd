@@ -237,7 +237,7 @@ int main (int argc, char *argv[])
     }
     int destPort = 5353;
  
-    sleep(40); // Wait until all net interfaces are configured
+    sleep(4); // Wait until all net interfaces are configured
  
     unsigned int myIpAddr;
     int nTry = 1;
