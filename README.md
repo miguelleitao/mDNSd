@@ -9,3 +9,9 @@ make
 sudo make install
 sudo systemctl start mdnsd
 ```
+
+mDNSd multicast DNS daemon can be tested using dig command:
+
+    dig @224.0.0.251 -p 5353 device_name
+
+
