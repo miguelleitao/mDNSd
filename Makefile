@@ -33,6 +33,12 @@ push:
 	-git commit -m "auto update"
 	git push
 
+upgrade:
+	git commit -a -m "Backup for local version"
+	git branch local_backup
+	git fetch origin
+	git reset --hard origin/master
+
 install: ${TARGET} ${TABLE}
 	install -d $(DESTDIR)$(PREFIX)/bin/
 	install -m 755 ${TARGET} $(DESTDIR)$(PREFIX)/bin/
