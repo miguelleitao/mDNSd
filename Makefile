@@ -26,7 +26,7 @@ ${TABLE}:
 	echo `hostname -s`.local >$@
 
 clean:
-	rm -f ${TARGET} ${TARGET}.o ${TABLE}
+	rm -f ${TARGET} ${TARGET}.o ${TABLE} ${DEV_TARGETS}
 
 push:
 	git add .

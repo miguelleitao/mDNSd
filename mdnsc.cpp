@@ -23,6 +23,13 @@ int nNames = 0;
 
 SocketConnector *myClient;
 
+
+
+void putByte(char *buf, unsigned char v) {
+	char *p = (char *)&v;
+	buf[0] = p[0];
+}
+
 void putWord(char *buf, unsigned short int v) {
 	char *p = (char *)&v;
 	buf[0] = p[1];
@@ -39,8 +46,8 @@ void putDWord(char *buf, unsigned int v) {
 
 char *putString(char *buf, std::string str) {
 	const char *s = str.c_str();
-	putWord(buf, strlen(s));
-	buf += 2;
+	putByte(buf, strlen(s));
+	buf += 1;
 	while( *s ) {
 		*buf = *s;
 		buf++;
@@ -104,16 +111,19 @@ int main (int argc, char *argv[])
   putWord(aPacket +10, 0);
   
   // Single question
-  putWord(aPacket + 12, id);
-  char *qname = aPacket + 14;
-  qname = putString(qname, "www");
-  qname = putString(qname, "local");
-  qname = putString(qname, "net");
+  //putWord(aPacket + 12, id);
+  char *qname = aPacket + 12;
+  
+  qname = putString(qname, argv[1]);
+  
+  //qname = putString(qname, "www");
+  //qname = putString(qname, "local");
+  //qname = putString(qname, "net");
   *qname = 0;
   qname++;
   
-  putWord(qname+0, 0x0001);
-  putWord(qname+2, 0x0001);
+  putWord(qname+0, 0x0001);	// Type A (Host Address)
+  putWord(qname+2, 0x0001);	// QU question: False
   
   int pack_len = qname-aPacket + 4; 
   
@@ -126,6 +136,7 @@ int main (int argc, char *argv[])
   int res;
   do {
       res = myClient->Receive((unsigned char *)buffer,250);
+      printf("Retornou de receive %d bytes\n", res);
       int query_len = res-16;
       
       if ( res>0 && res<MAX_NAME_LINE+2 ) {
