@@ -1,7 +1,9 @@
 /*
- *  Socket connector
+ *  Socket Connector
  *
  *  Implements TCP Server, TCP Client, UDP Server and UDP Client
+ *
+ *  https://github.com/miguelleitao/SocketConnector
  */
  
 #ifndef _TCPUDP_H_ 
@@ -12,6 +14,7 @@
 #include <sys/socket.h>
 #include <sys/errno.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -30,9 +33,9 @@ class SocketConnector
     #define BUFFERSIZE  1024  		        /* Initial size of receiving buffer.
     						 * Max size of packets to be received.
     						 */
-    public:
+    protected:
         int  Soc;                         	/* Socket descriptor */
-        struct sockaddr_in myaddr_in;  	/* For local socket address */
+        struct sockaddr_in myaddr_in;  	        /* For local socket address */
         int BufferSize = BUFFERSIZE;		/* Actual max size of packets to be received */
     	int cc;                   		/* Contains the number of bytes read */
     	char buffer[BUFFERSIZE];  		/* Buffer for packets to be read into */
@@ -53,7 +56,7 @@ class SocketConnector
     	    //printf("SocketConnector constructed\n");
     	}
     	virtual ~SocketConnector() {
-    	    //printf("Socket destruido\n");
+    	    //printf("SocketConnector destroyed\n");
     	}
     	// Bind is only used by servers
     	virtual int Bind(int port) {
@@ -61,8 +64,8 @@ class SocketConnector
     		return 0;
     	}
     	
-    	// Bind is only used by clients.
-    	// Both STREAM and DATAGRAM Socket connector use Connect().
+    	// Connect is only used by clients.
+    	// Both STREAM and DATAGRAM Socket connectors use Connect().
     	virtual int Connect(const char *hostname, int port) {
     		fprintf(stderr,"Error. Virtual method SocketConnector::Connect() called\n");
     		return 0;
@@ -113,7 +116,6 @@ class SocketConnector
 
     	virtual int Receive(unsigned char *buffer, int bufsize)
     	{
-    		printf("Receiving\n");
 		cc = recv(Soc, buffer, bufsize , 0);
 		if ( cc == -1) {
 		    if ( errno!=EAGAIN && errno!=EWOULDBLOCK ) {
@@ -156,14 +158,14 @@ class SocketConnector
 	}
 	
     	virtual int Reply(const char *b, int len) {
-    		fprintf(stderr,"Error. Virtual method SocketConnector::Reply() called\n");
+    		fprintf(stderr, "Error. Virtual method SocketConnector::Reply() called\n");
     		return 0;
     	}
         void Close() {
 	    close(Soc);
 	}
 	virtual void EndServer() {	// Only TCP Servers
-    		fprintf(stderr,"Error. Virtual method SocketConnector::EndServer() called\n");
+    		fprintf(stderr, "Error. Virtual method SocketConnector::EndServer() called\n");
     	}
 };
 
@@ -172,7 +174,7 @@ class ServerConnector : public SocketConnector
     protected:
         struct sockaddr_in clientaddr_in;		/* for client socket address */
         int    clientaddr_len = 0;
-        
+        struct ip_mreq mreq;        
     public:
         ServerConnector() {
 	    /* clear out address structures */
@@ -273,8 +275,6 @@ class ClientUDP : public ClientConnector
 		retryDelay = 1;
 		return 0;
 	  }
-
-
 };
 
  
@@ -290,13 +290,15 @@ class ServerUDP : public ServerConnector
         }
     int Bind(int port)
     {  
+        myaddr_in.sin_family = AF_INET;
+        myaddr_in.sin_addr.s_addr = htonl(INADDR_ANY);
   	myaddr_in.sin_port = htons(port);
 
         /* Create the socket. */
   	Soc = socket (AF_INET, SOCK_DGRAM, 0);
   	if (Soc == -1) {
                 perror("ServerUDP");
-                printf("%s: unable to create socket\n", "ServerUDP");
+                fprintf(stderr,"%s: unable to create socket\n", "ServerUDP");
                 return 1;
   	}
   	
@@ -306,7 +308,7 @@ class ServerUDP : public ServerConnector
         /* Bind the server's address to the socket. */
   	if (bind(Soc, (const sockaddr*)&myaddr_in, sizeof(struct sockaddr_in)) == -1) {
                 perror("ServerUDP");
-                printf("%s: unable to bind address\n", "ServerUDP");
+                fprintf(stderr,"%s: unable to bind address\n", "ServerUDP");
                 return 1;
   	}
 
@@ -369,7 +371,17 @@ class ServerUDP : public ServerConnector
     int Send(const char *msg, int msize) {
     	return Reply(msg,msize);
     }
-    
+
+    int AddMulticastGroup(const char *mcast_group) {
+        mreq.imr_multiaddr.s_addr = inet_addr(mcast_group);
+        mreq.imr_interface.s_addr = htonl(INADDR_ANY);
+        if (setsockopt(Soc, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0) {
+            perror("setsockopt mreq");
+	    return 1;
+        }
+        return 0;
+    }
+
 };
 
 
@@ -386,6 +398,7 @@ class ServerTCP : public ServerConnector
     };
     int Bind(int port)
     {
+	// Calls socket(), bind(), listen() && accept()
         if ( status<1 ) {
 		//sp = new struct servent;   
 	  	myaddr_in.sin_port = htons(port);
@@ -394,7 +407,7 @@ class ServerTCP : public ServerConnector
 	  	listenSoc = socket (AF_INET, SOCK_STREAM, 0);
 	  	if (listenSoc == -1) {
 		        perror("ServerTCP");
-		        printf("%s: unable to create socket\n", "ServerTCP");
+		        fprintf(stderr,"%s: unable to create socket\n", "ServerTCP");
 		        return 1;
 	  	}
 	  	status = 1;
@@ -404,7 +417,7 @@ class ServerTCP : public ServerConnector
 		/* Bind the server's address to the socket. */
 	  	if (bind(listenSoc, (const sockaddr*)&myaddr_in, sizeof(struct sockaddr_in)) == -1) {
 		        perror("ServerTCP");
-		        printf("%s: unable to bind address\n", "ServerTCP");
+		        fprintf(stderr,"%s: unable to bind address\n", "ServerTCP");
 		        return 1;
 	  	}
 	  	status = 2;
@@ -441,7 +454,6 @@ class ServerTCP : public ServerConnector
 
 class ClientTCP : public ClientConnector
 { 
- 
           struct hostent *hp; 		/* pointer to info for nameserver host */
     public: 
 	  ClientTCP()
@@ -475,7 +487,6 @@ class ClientTCP : public ClientConnector
 		return 0;
 	  }
 };
-
 
 
 #endif

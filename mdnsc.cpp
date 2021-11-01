@@ -97,7 +97,7 @@ int main (int argc, char *argv[])
   myClient = new ClientUDP();
   myClient->Connect("224.0.0.251", destPort);
   
-  
+  //myClient->SetReadTimeout(4.);
   char aPacket[MAX_NAME_LINE+12];
 
   
@@ -135,6 +135,7 @@ int main (int argc, char *argv[])
   char buffer[280];
   int res;
   do {
+      printf("recebendo...\n"); 
       res = myClient->Receive((unsigned char *)buffer,250);
       printf("Retornou de receive %d bytes\n", res);
       int query_len = res-16;
@@ -186,7 +187,7 @@ int main (int argc, char *argv[])
   	  // Got query.
       }
       else {
-	  fprintf(stderr,"Error. Invalid query packet\n");
+	  fprintf(stderr,"Error. Invalid response packet\n");
       }
   } while (res>1);
   /*-- Return 0 if exit is successful --*/
