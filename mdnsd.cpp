@@ -25,7 +25,7 @@ int verbose = 0;
 char *names_table[MAX_NAMES_N];
 int nNames = 0;
 
-SocketConnector *myServer;
+ServerUDP *myServer;
 
 void putWord(char *buf, unsigned short int v) {
 	char *p = (char *)&v;
@@ -258,13 +258,8 @@ int main (int argc, char *argv[])
 */
 
     myServer->Bind(destPort);
-  
-    struct ip_mreq mreq;
-    mreq.imr_multiaddr.s_addr = inet_addr("224.0.0.251");
-    //mreq.imr_interface.s_addr = inet_addr("192.168.1.82");
-    mreq.imr_interface.s_addr = myIpAddr;
-    setsockopt(myServer->Soc, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) ;
-  
+    myServer->AddMulticastGroup("224.0.0.251"); 
+
     char buffer[280];
     int res;
     do {
