@@ -363,7 +363,7 @@ class ServerUDP : public ServerConnector
 	res = sendto (Soc, msg, msize, 0, (struct sockaddr *)&clientaddr_in, clientaddr_len);
 	if ( res==-1 ) {
             perror("ServerUDP::Reply");
-            fprintf(stderr, "%s: unable to send messge to requester\n", "ServerUDP::Reply");
+            fprintf(stderr, "%s: unable to send message to requester\n", "ServerUDP::Reply");
 	}
 	return res;
     };
