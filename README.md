@@ -12,6 +12,6 @@ sudo systemctl start mdnsd
 
 mDNSd multicast DNS daemon can be tested using dig command:
 
-    dig @224.0.0.251 -p 5353 device_name
+    dig -p 5353 +unexpected @224.0.0.251 hostname.local
 
 

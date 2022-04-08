@@ -4,6 +4,8 @@
  * Multicast DNS daemon.
  *
  * Usage: ./mdnsd
+ *
+ * Miguel Leitao, 2019
  */
 
 
@@ -225,6 +227,13 @@ int main (int argc, char *argv[])
     char nline[MAX_NAME_LINE+1];
     while( nNames<MAX_NAMES_N && fgets(nline, MAX_NAME_LINE, ftab) ) {
         if ( ! *nline ) continue;
+        if ( ! strncmp(nline, "$hostname", 9) ) {
+            int res = gethostname(nline, MAX_NAME_LINE);
+            if ( res ) {
+            	perror("Could not get hostname");
+            	continue;
+            }
+        }
   	names_table[nNames] = strdup(nline);
 	if ( verbose>1 )
 	    printf("  Name[%d]: %s.\n", nNames, nline);
