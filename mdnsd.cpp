@@ -6,6 +6,15 @@
  * Usage: ./mdnsd
  *
  * Miguel Leitao, 2019
+ *
+ *
+ *
+ * Announcements
+ *  "As part of the mDNS protocol mDNS devices will make announcements containing their mDNS records
+ *   on start and in response to network changes on the  host machine.
+ *   These announcements will be received by all mDNS clients on the local network and used to update their own records."
+ *
+ * mdnsd is a response-only daemon. It does not implement announcements.
  */
 
 
@@ -276,10 +285,10 @@ int main (int argc, char *argv[])
       if ( res>0 && res<MAX_NAME_LINE+2 ) {
   	  buffer[res] = 0;
   	  if ( verbose>39 ) {
-  	      printf("Received: %d bytes\n", res);
+  	      printf("\n Received: %d bytes\n", res);
   	      unsigned int i;	      
   	      for( i=0; i<(unsigned)res ; i++ ) {
-  	          printf("  %u: %u, %c\n", i, (unsigned char)buffer[i], buffer[i] );
+  	          printf("  %x(%u): %x(%u), %c\n", i, i, (unsigned char)buffer[i], (unsigned char)buffer[i], buffer[i] );
   	      }
   	      printf("--- End packect dump\n");
   	  }
@@ -289,6 +298,9 @@ int main (int argc, char *argv[])
   	  id += (unsigned char)(buffer[1]);
   	  if ( verbose>11 ) printf("  got id:%u\n", id);
   	  unsigned short int flags = *(unsigned short int *)(buffer+2);
+  	  
+  	  // Counters
+  	  // 4 counters, one for each section 
   	  unsigned short int counters[4];
   	  for( int i=0 ; i<4 ; i++ ) {
   	  	counters[i] = 0x100*buffer[4+2*i] + buffer[4+2*i+1];
@@ -319,6 +331,20 @@ int main (int argc, char *argv[])
   	  nline[nline_len] = 0;
   	  if ( verbose>1 ) printf("LINE: '%s' (%d)\n", nline, nline_len);
   	  
+  	  ini += 2;
+  	  unsigned short int qtype       = *(unsigned short int *)(buffer+ini);
+  	  unsigned short int qclass      = *(unsigned short int *)(buffer+ini+2);
+  	  unsigned short int unicast_res = qclass & 0x8000;
+  	  qclass &= 0x7fff;
+  	  
+  	  // Some hosts (Apple MacBook-Air) seems to set bit 14 of QCLASS is some queries.
+  	  //qclass &= 0x3fff;
+  	  
+  	  // Only process QCLASS="IN" queries
+  	  if ( qclass!=1 && qclass!=255 ) continue;
+  	  
+  	  if ( verbose>2 ) printf("ini=%d, QTYPE=%u, UnicastResponse: %u, QCLASS:%u\n", ini, qtype, unicast_res, qclass);
+  	   
   	  // Got query.
   	  // Now search name in table
   	  for( int i=0 ; i<nNames ; i++ ) {
@@ -356,7 +382,13 @@ int main (int argc, char *argv[])
 	  	              printf("%d: %u, %c\n", i, (unsigned char)aPacket[i], aPacket[i]);
 	  	          }
   	          }
-  	          myServer->Send(aPacket,pack_len);
+  	          int nSend = 0;
+  	          do {
+  	              myServer->Send(aPacket,pack_len);
+  	              if ( verbose ) printf("Enviou %d\n", nSend);
+  	              nSend++;
+  	              sleep(5);
+  	          } while( nSend<1 );
   	      }
   	  }
   	  // Not found. Ignore request.

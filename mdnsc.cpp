@@ -95,20 +95,25 @@ int main (int argc, char *argv[])
   int destPort = 5353;
   
   myClient = new ClientUDP();
+  
+  /*
+   * Socket is binded to any any fixed port.
+   * From rfc6762:5.1: "One-shot Multicast DNS Queries ... MUST NOT be sent using UDP source port 5353".
+   */
   myClient->Connect("224.0.0.251", destPort);
   
   //myClient->SetReadTimeout(4.);
   char aPacket[MAX_NAME_LINE+12];
 
   
-  unsigned short int id = 0xdb42;
-  unsigned short int flags = 0x0100;
+  unsigned short int id = 0xa614;
+  unsigned short int flags = 0x0120;
   putWord(aPacket + 0, id);
   putWord(aPacket + 2, flags);
   putWord(aPacket + 4, 1);			// 1 record in Query section
   putWord(aPacket + 6, 0);			// 0 record in Answer section
   putWord(aPacket + 8, 0);
-  putWord(aPacket +10, 0);
+  putWord(aPacket +10, 1);
   
   // Single question
   //putWord(aPacket + 12, id);
@@ -122,14 +127,41 @@ int main (int argc, char *argv[])
   *qname = 0;
   qname++;
   
-  putWord(qname+0, 0x0001);	// Type A (Host Address)
-  putWord(qname+2, 0x0001);	// QU question: False
+  // QTYPE
+  putWord(qname+0, 0x0001);	// QType: A (Host Address)
   
-  int pack_len = qname-aPacket + 4; 
+  // QCLASS
+  // Top bit on QCLASS field is Unicast-response
+  unsigned short unicast_resp = 0;			// 0 (false): Response will be multicasted
+  							// 1 (true):  Response will be unicasted
+  unsigned short qclass = 1;				// QCLASS: 1 = "IN"  for Internet or IP networks
+  putWord(qname+2, unicast_resp*0x8000 + qclass);	// QU question
+  
+  qname += 4;
+  *qname = 0;
+  qname++;
+  
+  putWord(qname+0,  0x0029);	// ??
+  putWord(qname+2,  0x1000);	// ??
+  putWord(qname+4,  0x0000);	// ??
+  putWord(qname+6,  0x0000);	// ??
+  putWord(qname+8,  0x000c);	// ??
+  putWord(qname+10, 0x000a);	// ??
+  putWord(qname+12, 0x0008);	// ??
+  qname += 14;
+  
+  // Parte variavel
+  putWord(qname+0,  0x8c51);	// ??
+  putWord(qname+2,  0x1f47);	// ??
+  putWord(qname+4,  0x3054);	// ??
+  putWord(qname+6,  0x2eb7);	// ??
+  qname += 8;
+  
+  int pack_len = qname-aPacket; 
   
   myClient->Send(aPacket,pack_len);
   
-  
+  //printf("Query sent. %d Bytes\n", pack_len);
   
   ///////////////
   char buffer[280];
