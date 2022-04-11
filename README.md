@@ -23,7 +23,7 @@ mDNSd multicast DNS daemon can be tested using dig command:
      These announcements will be received by all mDNS clients on the local network 
      and used to update their own records."
  
-    mdnsd is a response-only daemon. It does not implement periodic or "on start" announcements.
+mdnsd is a response-only daemon. It does not implement periodic or "on start" announcements.
   
 ### Unicast responses
     "The destination UDP port in all Multicast DNS responses MUST be 5353,
@@ -36,8 +36,8 @@ mDNSd multicast DNS daemon can be tested using dig command:
       * by virtue of being a legacy query (Section 6.7), or
       * by virtue of being a direct unicast query."
       
-    mDNSd responses are sent using to the port and unicast address that originated the query,
-    as sugested in "6.7.  Legacy Unicast Responses"
+mDNSd responses are sent using to the port and unicast address that originated the query,
+as sugested in "6.7.  Legacy Unicast Responses"
     
 ## Documentation
 https://datatracker.ietf.org/doc/rfc6762/
