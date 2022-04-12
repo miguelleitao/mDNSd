@@ -53,7 +53,7 @@ void putDWord(char *buf, unsigned int v) {
 	buf[3] = p[3];
 }
 
-int GetDefaultNetInterface(char *dev, int dlen=10) {
+int GetDefaultNetInterface(char *dev, int dlen=24) {
     FILE *f;
     char line[71];
     char *p = NULL;
@@ -135,8 +135,8 @@ int GetLocalAddress ( char *host )
 {
     strcpy(host,"127.0.0.1"); // default local addr
     
-    char defdev[24];
-    GetDefaultNetInterface(defdev);
+    char defdev[30];
+    GetDefaultNetInterface(defdev,25);
     if ( ! defdev[0] ) {
 	// no default net interface
 	return -1;
