@@ -368,7 +368,7 @@ int main (int argc, char *argv[])
   	      if ( ! strncmp(nline,names_table[i],nline_len) ) {
   	          if ( verbose>9 ) printf("Found match: %d, '%s'\n", i, names_table[i]);
   	          char aPacket[MAX_NAME_LINE+12];
-  	          flags = 0x8400;
+  	          flags = 0x8000;
   	          putWord(aPacket + 0, id);
   	          putWord(aPacket + 2, flags);
   	          putWord(aPacket + 4, 1);			// 1 record in Query section
@@ -386,7 +386,7 @@ int main (int argc, char *argv[])
 
   	          a_ptr += nline_len+6;
   	          putWord(aPacket+a_ptr+0, 0x0000);	//   TTL (Hi Word)
-  	          putWord(aPacket+a_ptr+2, 0xa000);	//   TTL (Low Word)
+  	          putWord(aPacket+a_ptr+2, 0x000A);	//   TTL (Low Word)
   	          putWord(aPacket+a_ptr+4, 0x04);	// Addr len
   	          putDWord(aPacket+a_ptr+6, myIpAddr);	// IP addr.    Must be set !!
   	          
