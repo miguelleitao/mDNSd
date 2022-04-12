@@ -262,6 +262,7 @@ int main (int argc, char *argv[])
     do {
         myIpAddr = GetLocalIPv4Address();
 	if ( myIpAddr != 0x0100007f ) break;
+	printf("Rejected ip: %x\n", myIpAddr);
         sleep(nTry);
         if ( nTry < 6*60 ) nTry += 1;
     } while( myIpAddr == 0x0100007f );
