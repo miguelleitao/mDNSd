@@ -118,9 +118,10 @@ unsigned int GetLocalIPv4Address ( )
 	    family = ifa->ifa_addr->sa_family;
 
 	    if ( strcmp( ifa->ifa_name, defdev) == 0 ) {
+		if ( verbose>91 ) printf("  Name match: '%s'\n", defdev);
 		if (family == fm) {
 		    host = *(unsigned int*)(ifa->ifa_addr->sa_data+2);
-		    printf("  Found addr: '%x'\n", host);
+		    if ( verbose>91 ) printf("  Found addr: '%x'\n", host);
 		    if ( host!=localhost )   break;
 		}
 	    }
