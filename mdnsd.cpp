@@ -309,7 +309,7 @@ int main (int argc, char *argv[])
   	      printf("\n--- End packect dump\n");
   	  }
   	  // Header is 12 bytes long, 6 * 16bits words: id + flags + 4*counters
-  	  //unsigned short int id    = *(unsigned short int *)(buffer+0);
+  	  // unsigned short int id    = *(unsigned short int *)(buffer+0);
   	  unsigned short int id = 256*(unsigned char)(buffer[0]);
   	  id += (unsigned char)(buffer[1]);
   	  if ( verbose>11 ) printf("  got id:%u\n", id);
@@ -320,7 +320,7 @@ int main (int argc, char *argv[])
   	  unsigned short int counters[4];
   	  for( int i=0 ; i<4 ; i++ ) {
   	  	counters[i] = 0x100*buffer[4+2*i] + buffer[4+2*i+1];
-  	  	// printf("  counter %d: %d\n", i, counters[i]);
+  	  	if ( verbose>15 ) printf("  counter %d: %d\n", i, counters[i]);
   	  }   
   	  if ( flags & 0x80 ) {		// Response packet
   	  	if (verbose>0) printf("Response packet received. Ignoring.\n");
@@ -330,6 +330,7 @@ int main (int argc, char *argv[])
   	  	if (verbose>0) printf("No query in received packet. Ignoring.\n");
   	  	continue;
   	  }
+  	  // End of Header
   	  int ini=12;			// Position Data Field
   	  char ntag[MAX_NAME_TAG+1];
   	  nline[0] = 0;
@@ -353,7 +354,7 @@ int main (int argc, char *argv[])
   	  unsigned short int unicast_res = qclass & 0x8000;
   	  qclass &= 0x7fff;
   	  
-  	  // Some hosts (Apple MacBook-Air) seems to set bit 14 of QCLASS is some queries.
+  	  // Some hosts (Apple MacBook-Air) seems to set bit 14 of QCLASS in some queries.
   	  //qclass &= 0x3fff;
   	  if ( verbose>2 ) printf("ini=%d, QTYPE=%u, UnicastResponse: %u, QCLASS:%u\n", ini, qtype, unicast_res, qclass);
   	  
