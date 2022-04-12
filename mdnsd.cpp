@@ -94,6 +94,7 @@ unsigned int GetLocalIPv4Address ( )
     GetDefaultNetInterface(defdev);
     if ( ! defdev[0] ) {
 	// no default net interface
+	if ( verbose ) printf("No default net interface,\n");
 	return host;
     }
     //which family do we require , AF_INET or AF_INET6
@@ -108,14 +109,18 @@ unsigned int GetLocalIPv4Address ( )
 
 	// Walk through linked list, maintaining head pointer so we can free list later
 	for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
-	    if (ifa->ifa_addr == NULL)
+	    
+	    if (ifa->ifa_addr == NULL) {
+	        if ( verbose>900 ) printf("No address found for if\n");
 		continue;
-
+	    }
+	    if ( verbose>90 ) printf("Examining if '%s'\n", ifa->ifa_name);
 	    family = ifa->ifa_addr->sa_family;
 
 	    if ( strcmp( ifa->ifa_name, defdev) == 0 ) {
 		if (family == fm) {
 		    host = *(unsigned int*)(ifa->ifa_addr->sa_data+2);
+		    printf("  Found addr: '%x'\n", host);
 		    if ( host!=localhost )   break;
 		}
 	    }
