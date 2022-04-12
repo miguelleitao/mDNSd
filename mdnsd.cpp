@@ -88,8 +88,8 @@ int GetDefaultNetInterface(char *dev, int dlen=10) {
 
 unsigned int GetLocalIPv4Address ( )
 {
-    unsigned int host = 0x0100007f; // default local addr (127.0.0.1)
-
+    unsigned int localhost = 0x0100007f; // default local addr (127.0.0.1)
+    unsigned int host = localhost;
     char defdev[24];
     GetDefaultNetInterface(defdev);
     if ( ! defdev[0] ) {
@@ -116,7 +116,7 @@ unsigned int GetLocalIPv4Address ( )
 	    if ( strcmp( ifa->ifa_name, defdev) == 0 ) {
 		if (family == fm) {
 		    host = *(unsigned int*)(ifa->ifa_addr->sa_data+2);
-		    break;
+		    if ( host!=localhost )   break;
 		}
 	    }
 	}
