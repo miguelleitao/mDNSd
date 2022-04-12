@@ -286,11 +286,27 @@ int main (int argc, char *argv[])
   	  buffer[res] = 0;
   	  if ( verbose>39 ) {
   	      printf("\n Received: %d bytes\n", res);
-  	      unsigned int i;	      
+  	      unsigned int i;	
+  	      unsigned int xPos = 0;      
   	      for( i=0; i<(unsigned)res ; i++ ) {
-  	          printf("  %x(%u): %x(%u), %c\n", i, i, (unsigned char)buffer[i], (unsigned char)buffer[i], buffer[i] );
+  	          
+  	          //if ( ! (i%8) ) {
+  	          if ( xPos>=64 ) {
+  	              if ( i ) printf("\n");
+  	              printf("  #%02x(%3u):", i, i);
+  	              xPos = 0;
+  	          }
+  	          if ( buffer[i]>20 ) {
+  	              printf("%c", buffer[i]);
+  	              xPos+=1;
+  	          } 
+  	          else {
+  	              printf(" #%02x(%3u)", (unsigned char)buffer[i], (unsigned char)buffer[i]);
+  	              xPos += 8;
+  	          }  
+  	          
   	      }
-  	      printf("--- End packect dump\n");
+  	      printf("\n--- End packect dump\n");
   	  }
   	  // Header is 12 bytes long, 6 * 16bits words: id + flags + 4*counters
   	  //unsigned short int id    = *(unsigned short int *)(buffer+0);
@@ -329,7 +345,7 @@ int main (int argc, char *argv[])
   	  }
   	  nline_len--;
   	  nline[nline_len] = 0;
-  	  if ( verbose>1 ) printf("LINE: '%s' (%d)\n", nline, nline_len);
+  	  if ( verbose>1 ) printf("Name: '%s' (%d)\n", nline, nline_len);
   	  
   	  ini += 2;
   	  unsigned short int qtype       = *(unsigned short int *)(buffer+ini);
@@ -339,11 +355,11 @@ int main (int argc, char *argv[])
   	  
   	  // Some hosts (Apple MacBook-Air) seems to set bit 14 of QCLASS is some queries.
   	  //qclass &= 0x3fff;
+  	  if ( verbose>2 ) printf("ini=%d, QTYPE=%u, UnicastResponse: %u, QCLASS:%u\n", ini, qtype, unicast_res, qclass);
   	  
   	  // Only process QCLASS="IN" queries
   	  if ( qclass!=1 && qclass!=255 ) continue;
   	  
-  	  if ( verbose>2 ) printf("ini=%d, QTYPE=%u, UnicastResponse: %u, QCLASS:%u\n", ini, qtype, unicast_res, qclass);
   	   
   	  // Got query.
   	  // Now search name in table
