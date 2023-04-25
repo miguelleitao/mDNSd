@@ -1,9 +1,9 @@
 /*
  * mdnsd.cpp
  *
- * Multicast DNS daemon.
+ * Multicast DNS client.
  *
- * Usage: ./mdnsd
+ * Usage: ./mdnsc 
  */
 
 
@@ -16,7 +16,6 @@
 #define MAX_NAME_LINE 250
 #define MAX_NAME_TAG 100
 #define MAX_NAMES_N  8
-#define NAMES_TAB_FILE "mdnsd.tab"
 
 char *names_table[MAX_NAMES_N];
 int nNames = 0;
